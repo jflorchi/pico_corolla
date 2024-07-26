@@ -18,7 +18,7 @@ if (TARGET tinyusb_device)
 	add_executable(main
 		src/main.c
 
-		src/can2040.c
+		include/can2040.c
 		include/can2040.h
 	)
 
