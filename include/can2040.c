@@ -13,6 +13,7 @@
 #include "hardware/structs/iobank0.h" // iobank0_hw
 #include "hardware/structs/padsbank0.h" // padsbank0_hw
 #include "hardware/structs/pio.h" // pio0_hw
+#include "hardware/pio.h" // pio functions and types
 #include "hardware/structs/resets.h" // RESETS_RESET_PIO0_BITS
 
 
@@ -128,7 +129,7 @@ static void
 pio_sync_setup(struct can2040 *cd)
 {
     pio_hw_t *pio_hw = cd->pio_hw;
-    struct pio_sm_hw *sm = &pio_hw->sm[0];
+    pio_sm_hw_t *sm = &pio_hw->sm[0];
     sm->execctrl = (
         cd->gpio_rx << PIO_SM0_EXECCTRL_JMP_PIN_LSB
         | (can2040_offset_sync_end - 1) << PIO_SM0_EXECCTRL_WRAP_TOP_LSB
@@ -148,7 +149,7 @@ static void
 pio_rx_setup(struct can2040 *cd)
 {
     pio_hw_t *pio_hw = cd->pio_hw;
-    struct pio_sm_hw *sm = &pio_hw->sm[1];
+    pio_sm_hw_t *sm = &pio_hw->sm[1];
     sm->execctrl = (
         (can2040_offset_shared_rx_end - 1) << PIO_SM0_EXECCTRL_WRAP_TOP_LSB
         | can2040_offset_shared_rx_read << PIO_SM0_EXECCTRL_WRAP_BOTTOM_LSB);
@@ -165,7 +166,7 @@ static void
 pio_match_setup(struct can2040 *cd)
 {
     pio_hw_t *pio_hw = cd->pio_hw;
-    struct pio_sm_hw *sm = &pio_hw->sm[2];
+    pio_sm_hw_t *sm = &pio_hw->sm[2];
     sm->execctrl = (
         (can2040_offset_match_end - 1) << PIO_SM0_EXECCTRL_WRAP_TOP_LSB
         | can2040_offset_shared_rx_read << PIO_SM0_EXECCTRL_WRAP_BOTTOM_LSB);
@@ -182,7 +183,7 @@ static void
 pio_tx_setup(struct can2040 *cd)
 {
     pio_hw_t *pio_hw = cd->pio_hw;
-    struct pio_sm_hw *sm = &pio_hw->sm[3];
+    pio_sm_hw_t *sm = &pio_hw->sm[3];
     sm->execctrl = (
         cd->gpio_rx << PIO_SM0_EXECCTRL_JMP_PIN_LSB
         | can2040_offset_tx_conflict << PIO_SM0_EXECCTRL_WRAP_TOP_LSB
@@ -255,7 +256,7 @@ pio_tx_reset(struct can2040 *cd)
                     | (0x08 << PIO_CTRL_SM_RESTART_LSB));
     pio_hw->irq = (SI_MATCHED | SI_ACKDONE) >> 8; // clear PIO irq flags
     // Clear tx fifo
-    struct pio_sm_hw *sm = &pio_hw->sm[3];
+    pio_sm_hw_t *sm = &pio_hw->sm[3];
     sm->shiftctrl = 0;
     sm->shiftctrl = (PIO_SM0_SHIFTCTRL_FJOIN_TX_BITS
                      | PIO_SM0_SHIFTCTRL_AUTOPULL_BITS);
@@ -271,7 +272,7 @@ pio_tx_send(struct can2040 *cd, uint32_t *data, uint32_t count)
     uint32_t i;
     for (i=0; i<count; i++)
         pio_hw->txf[3] = data[i];
-    struct pio_sm_hw *sm = &pio_hw->sm[3];
+    pio_sm_hw_t *sm = &pio_hw->sm[3];
     sm->instr = 0xe001; // set pins, 1
     sm->instr = 0x6021; // out x, 1
     sm->instr = can2040_offset_tx_write_pin; // jmp tx_write_pin
@@ -287,7 +288,7 @@ pio_tx_inject_ack(struct can2040 *cd, uint32_t match_key)
     pio_tx_reset(cd);
     pio_hw->instr_mem[can2040_offset_tx_got_recessive] = 0xc023; // irq wait 3
     pio_hw->txf[3] = 0x7fffffff;
-    struct pio_sm_hw *sm = &pio_hw->sm[3];
+    pio_sm_hw_t *sm = &pio_hw->sm[3];
     sm->instr = 0xe001; // set pins, 1
     sm->instr = 0x6021; // out x, 1
     sm->instr = can2040_offset_tx_write_pin; // jmp tx_write_pin

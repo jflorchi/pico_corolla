@@ -10,19 +10,35 @@ project(pico_corolla)
 pico_sdk_init()
 
 if (TARGET tinyusb_device)
-	# rest of your project
-	include_directories($ENV{PICO_SDK_PATH}/src/rp2_common/cmsis/stub/CMSIS/Core/Include)
-	include_directories($ENV{PICO_SDK_PATH}/src/rp2_common/cmsis/stub/CMSIS/Device/RaspberryPi/RP2040/Include)
+	# Add ./include to the global include path (can be refined later if needed)
 	include_directories(include)
 
+	# Define the can2040 library
+	add_library(can2040_lib
+		include/can2040.c
+	)
+	# Explicitly add the directory containing RP2040.h and core_cm0plus.h for can2040_lib
+	target_include_directories(can2040_lib PRIVATE
+		${PICO_SDK_PATH}/src/rp2_common/cmsis/stub/CMSIS/Device/RP2040/Include
+		${PICO_SDK_PATH}/src/rp2_common/cmsis/stub/CMSIS/Core/Include
+	)
+	# Link can2040 library against pico_stdlib AND hardware_pio to get SDK includes/libs
+	target_link_libraries(can2040_lib PRIVATE pico_stdlib hardware_pio)
+
+	# Define the main executable
 	add_executable(main
 		src/main.c
-
-		include/can2040.c
-		include/can2040.h
+		# can2040.h is needed by main.c, but included via include_directories()
 	)
 
-	target_link_libraries(main pico_stdlib)
+	# Explicitly add the directory containing RP2040.h and core_cm0plus.h for main.c
+	target_include_directories(main PRIVATE
+		${PICO_SDK_PATH}/src/rp2_common/cmsis/stub/CMSIS/Device/RP2040/Include
+		${PICO_SDK_PATH}/src/rp2_common/cmsis/stub/CMSIS/Core/Include
+	)
+
+	# Link main against pico_stdlib, our can2040 library, hardware_spi, and hardware_adc
+	target_link_libraries(main PRIVATE pico_stdlib can2040_lib hardware_spi hardware_adc)
 
 	pico_add_extra_outputs(main)
 
@@ -34,4 +50,3 @@ if (TARGET tinyusb_device)
 elseif(PICO_ON_DEVICE)
     message(WARNING "not building hello_usb because TinyUSB submodule is not initialized in the SDK")
 endif()
-
